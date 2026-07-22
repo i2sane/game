@@ -1,5 +1,5 @@
 CC=cc
-CFLAGS=-lraylib
+CFLAGS=-lraylib -Wall
 FILES=main.c fifo.c
 NAME=uttg
 

@@ -11,7 +11,8 @@ const int winWidth = 1024, winHeight = 768;
 /* open for suggestions on other events to add! */
 typedef enum {
 	SPARKINGROOF,
-	ELEVATORSHAKING
+	ROPEBREAKING,
+	TIMEMODULEFAILURE
 } elevatorEvent;
 
 struct enemy {
@@ -79,7 +80,7 @@ int main(int argc, char **argv) {
 			if (state.isInElevator) {
 				DrawTexture(state.elevatorImg, 0, 0, WHITE);
 			} else {
-				rpgDrawLevelWalls(state.levelWalls, LEVELWALLSLIMIT);
+				rpgDrawLevelWalls(&state.levelWalls[0], LEVELWALLSLIMIT);
 				rpgDrawPlayer(&state.rpgPlayer);
 			}
 		EndDrawing();
