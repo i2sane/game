@@ -3,6 +3,8 @@ CFLAGS=-lraylib
 FILES=main.c fifo.c
 NAME=uttg
 
+all: clean uttg uttg.exe
+
 uttg:
 	$(CC) $(CFLAGS) $(FILES) -o $(NAME)
 
@@ -15,5 +17,3 @@ web:
 
 clean:
 	rm uttg uttg.exe || true
-
-all: clean uttg uttg.exe

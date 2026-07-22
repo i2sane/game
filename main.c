@@ -41,6 +41,10 @@ void initgameState(gameState *state) {
 	state->elevatorImg = LoadTexture("images/elevator1.png");
 }
 
+void destroygameState(gameState *state) {
+	UnloadTexture(state->elevatorImg);
+}
+
 void *getLastFreePtrArrayItem(void **array, int arrSize) {
 	for (int i = 0; i < arrSize; i++) {
 		if (array[i] == NULL)
@@ -51,10 +55,11 @@ void *getLastFreePtrArrayItem(void **array, int arrSize) {
 
 int main(int argc, char **argv) {
 	puts("UTTG!");
+	InitWindow(winWidth, winHeight, "UTTG");
 	gameState state;
 	initgameState(&state);
-	InitWindow(winWidth, winHeight, "UTTG");
 	SetTargetFPS(60);
+	
 	while (!WindowShouldClose()) {
 		BeginDrawing();
 			ClearBackground(WHITE);
@@ -65,6 +70,8 @@ int main(int argc, char **argv) {
 			}
 		EndDrawing();
 	}
+	
+	destroygameState(&state);
 	
 	return 0;
 }
