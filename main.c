@@ -1,6 +1,13 @@
 #include <stdio.h>
+#include <stdbool.h>
+#include <raylib.h>
 
-int main(void) {
-	puts("hello world");
+struct gameState {
+	bool isInElevator;
+	Rectangle *levelWalls[10000];
+}
+
+int main(int argc, char **argv) {
+	
 	return 0;
 }
