@@ -1,14 +1,14 @@
 CC=cc
 CFLAGS=-lraylib -Wall
 FILES=main.c fifo.c
-NAME=uttg
+NAME=uetg
 
-all: clean uttg uttg.exe
+all: clean uetg uetg.exe
 
-uttg:
+uetg:
 	$(CC) $(CFLAGS) $(FILES) -o $(NAME)
 
-uttg.exe:
+uetg.exe:
 	echo win
 
 web:
@@ -16,4 +16,4 @@ web:
 	emcc $(CFLAGS) $(FILES) -o $(NAME)
 
 clean:
-	rm uttg uttg.exe || true
+	rm uetg uetg.exe || true

@@ -17,6 +17,10 @@ typedef enum {
 	TIMEMODULEFAILURE
 } elevatorEvent;
 
+typedef enum {
+	NOTHING
+} inventoryItem;
+
 struct enemy {
 	Rectangle hitbox;
 	FifoQueue *enqueuedEvents;
@@ -28,6 +32,13 @@ struct playerRPG {
 };
 
 typedef struct {
+	Rectangle *attachedHitbox;
+	Camera2D camera;
+} rpgCamera;
+
+typedef struct {
+	inventoryItem inventory[50];
+	
 	/* ELEVATOR SPECIFIC BULLSHITTO */
 	bool isInElevator;
 	Texture elevatorImg; 
@@ -38,7 +49,19 @@ typedef struct {
 	struct enemy *enemies[ENEMIESLIMIT];
 	Texture levelImg;
 	struct playerRPG rpgPlayer;
+	rpgCamera camera;
 } gameState;
+
+void attachCameraToHitbox(rpgCamera *camera, Rectangle *hitbox) {
+	camera->camera.target = (Vector2){
+		hitbox->x + 20,
+		hitbox->y + 20
+	};
+	camera->camera.offset = (Vector2){
+		winWidth / 2.0f,
+		winHeight / 2.0f
+	};
+}
 
 void initgameState(gameState *state) {
 	memset(state, 0, sizeof (gameState));
@@ -46,6 +69,7 @@ void initgameState(gameState *state) {
 	state->elevatorImg = LoadTexture("images/elevator1.png");
 	state->rpgPlayer.hitbox.height = 10;
 	state->rpgPlayer.hitbox.width = 10;
+	state->camera.camera.zoom = 1.0f;
 }
 
 void destroygameState(gameState *state) {
@@ -65,6 +89,7 @@ void updategameState(gameState *state) {
 		
 	} else {
 		struct playerRPG *player = &state->rpgPlayer;
+		attachCameraToHitbox(&state->camera, &player->hitbox);
 		if (IsKeyDown(KEY_UP))
 			player->hitbox.y -= playerSpeed;
 		if (IsKeyDown(KEY_DOWN))
@@ -87,17 +112,19 @@ void rpgDrawPlayer(struct playerRPG *player) {
 }
 
 void drawgameState(gameState *state) {
-	ClearBackground(WHITE);
-	if (state->isInElevator) {
-		DrawTexture(state->elevatorImg, 0, 0, WHITE);
-	} else {
-		rpgDrawLevelWalls(&state->levelWalls[0], LEVELWALLSLIMIT);
-		rpgDrawPlayer(&state->rpgPlayer);
-	}
+		ClearBackground(WHITE);
+		if (state->isInElevator) {
+			DrawTexture(state->elevatorImg, 0, 0, WHITE);
+		} else {
+			BeginMode2D(state->camera.camera);
+				rpgDrawLevelWalls(&state->levelWalls[0], LEVELWALLSLIMIT);
+				rpgDrawPlayer(&state->rpgPlayer);
+			EndMode2D();
+		}
 }
 
 int main(int argc, char **argv) {
-	puts("UTTG!");
+	puts("UETG!");
 	InitWindow(winWidth, winHeight, "UTTG");
 	gameState state;
 	initgameState(&state);
