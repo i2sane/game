@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <raylib.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 #include "fifo.h"
 
 #define LEVELWALLSLIMIT 10000 
@@ -10,18 +13,20 @@
 const int winWidth = 1024, winHeight = 768;
 const int playerSpeed = 4;
 bool debug = true;
-char buf[1024] = {0};
-int mouseX, mouseY;
-bool freezeDbgText = false;
+Sound hum, ding; 
 
 /* open for suggestions on other events to add! */
 typedef enum {
 	SPARKINGROOF,
-	ROPEBREAKING
+	ROPEBREAKING,
+	DINGNOISE,
+	HUMNOISE
 } elevatorEvent;
 
 typedef enum {
-	NOTHING
+	NOTHING,
+	ADVERTISER_FRIENDLY_WEAPON,
+	GUM /* you swallow this to regain 10 health. lololo */
 } inventoryItem;
 
 struct npc {
@@ -41,12 +46,15 @@ typedef struct {
 } rpgCamera;
 
 typedef struct {
-	inventoryItem inventory[50];
+	bool gameHasStarted;
+	inventoryItem inventory[10];
 	
 	/* ELEVATOR SPECIFIC BULLSHITTO */
+	int floor;
+	int cyclesTillNextFloor;
 	bool isInElevator;
 	Texture elevatorImg; 
-	elevatorEvent currentElevatorEvent;
+	FifoQueue enqueuedElevatorEvents;
 	
 	/* RPG RELATED BULLSHITTO */
 	Rectangle *levelWalls[LEVELWALLSLIMIT];
@@ -68,16 +76,22 @@ void attachCameraToHitbox(rpgCamera *camera, Rectangle *hitbox) {
 }
 
 void initgameState(gameState *state) {
+	SetRandomSeed(time(NULL));
 	memset(state, 0, sizeof (gameState));
 	state->isInElevator = true;
 	state->elevatorImg = LoadTexture("images/elevator1.png");
 	state->rpgPlayer.hitbox.height = 10;
 	state->rpgPlayer.hitbox.width = 10;
 	state->camera.camera.zoom = 1.0f;
+	state->floor = 5;
+	hum = LoadSound("sounds/hum.ogg");
+	ding = LoadSound("sounds/ding.ogg");
+	Rectangle **levelWalls = &state->levelWalls[0];
 }
 
 void destroygameState(gameState *state) {
 	UnloadTexture(state->elevatorImg);
+	UnloadSound(hum);
 }
 
 void *getLastFreePtrArrayItem(void **array, int arrSize) {
@@ -90,7 +104,32 @@ void *getLastFreePtrArrayItem(void **array, int arrSize) {
 
 void updategameState(gameState *state) {
 	if (state->isInElevator) {
-		
+		elevatorEvent *queuedEvent = (elevatorEvent *)popFromQueue(&state->enqueuedElevatorEvents);
+		if (queuedEvent != NULL) {
+			switch (*queuedEvent) {
+				case DINGNOISE:
+					PlaySound(ding);
+					usleep(1000 * 700);
+					break;
+				case HUMNOISE:
+					PlaySound(hum);
+					usleep(1000 * 1000);
+					break;
+			}
+			free(queuedEvent);
+		}
+		if (state->cyclesTillNextFloor <= 0) {
+			elevatorEvent newEvent = DINGNOISE;
+			state->cyclesTillNextFloor = GetRandomValue(3, 6);
+			if (state->floor != 5)
+				state->floor--;
+			else
+				addToQueue(&state->enqueuedElevatorEvents, &newEvent, sizeof (newEvent));
+		} else {
+			elevatorEvent newEvent = HUMNOISE;
+			addToQueue(&state->enqueuedElevatorEvents, &newEvent, sizeof (newEvent));
+			state->cyclesTillNextFloor--;
+		}
 	} else {
 		struct playerRPG *player = &state->rpgPlayer;
 		attachCameraToHitbox(&state->camera, &player->hitbox);
@@ -102,8 +141,6 @@ void updategameState(gameState *state) {
 			player->hitbox.x -= playerSpeed;
 		if (IsKeyDown(KEY_RIGHT))
 			player->hitbox.x += playerSpeed;
-		if (IsKeyDown(KEY_M))
-			freezeDbgText = freezeDbgText ? false : true;
 	}
 }
 
@@ -119,19 +156,16 @@ void rpgDrawPlayer(struct playerRPG *player) {
 
 void drawgameState(gameState *state) {
 		ClearBackground(WHITE);
-		if (debug) {
-			if (!freezeDbgText) {
-				mouseX = GetMouseX();
-				mouseY = GetMouseY();
-				memset(buf, 0, 1024);
-				snprintf(buf, 1023, "%d, %d", mouseX, mouseY);
-			}
-			DrawText(buf, mouseX, mouseY, 14, BLACK);
-		}
 		if (state->isInElevator) {
 			DrawTexture(state->elevatorImg, 0, 0, WHITE);
 		} else {
 			BeginMode2D(state->camera.camera);
+				if (debug) {
+					char buf[1024] = {0};
+					struct playerRPG *player = &state->rpgPlayer;
+					snprintf(buf, 1023, "%f, %f", player->hitbox.x, player->hitbox.y);
+					DrawText(buf, player->hitbox.x + 10, player->hitbox.y + 10, 14, BLACK);
+				}
 				rpgDrawLevelWalls(&state->levelWalls[0], LEVELWALLSLIMIT);
 				rpgDrawPlayer(&state->rpgPlayer);
 			EndMode2D();
@@ -141,9 +175,10 @@ void drawgameState(gameState *state) {
 int main(int argc, char **argv) {
 	puts("UETG!");
 	InitWindow(winWidth, winHeight, "UETG");
+	InitAudioDevice();
 	gameState state;
 	initgameState(&state);
-	state.isInElevator = false;
+//	state.isInElevator = false;
 	SetTargetFPS(60);
 	
 	while (!WindowShouldClose()) {
