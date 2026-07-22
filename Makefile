@@ -1,6 +1,6 @@
 CC=cc
 CFLAGS=-lraylib
-FILES=main.c
+FILES=main.c fifo.c
 NAME=uttg
 
 uttg:
