@@ -4,9 +4,11 @@
 #include <string.h>
 #include "fifo.h"
 
-const int winWidth = 1024, winHeight = 768;
 #define LEVELWALLSLIMIT 10000 
 #define ENEMIESLIMIT 1024 
+
+const int winWidth = 1024, winHeight = 768;
+const int playerSpeed = 4;
 
 /* open for suggestions on other events to add! */
 typedef enum {
@@ -28,7 +30,7 @@ struct playerRPG {
 typedef struct {
 	/* ELEVATOR SPECIFIC BULLSHITTO */
 	bool isInElevator;
-	Texture elevatorImg; /* THIS NEEDS TO BE PANNED AROUND. or maybe not i still haven't decided. might not be for my sake :) */
+	Texture elevatorImg; 
 	elevatorEvent currentElevatorEvent;
 	
 	/* RPG RELATED BULLSHITTO */
@@ -42,6 +44,8 @@ void initgameState(gameState *state) {
 	memset(state, 0, sizeof (gameState));
 	state->isInElevator = true;
 	state->elevatorImg = LoadTexture("images/elevator1.png");
+	state->rpgPlayer.hitbox.height = 10;
+	state->rpgPlayer.hitbox.width = 10;
 }
 
 void destroygameState(gameState *state) {
@@ -56,6 +60,22 @@ void *getLastFreePtrArrayItem(void **array, int arrSize) {
 	return NULL;
 }
 
+void updategameState(gameState *state) {
+	if (state->isInElevator) {
+		
+	} else {
+		struct playerRPG *player = &state->rpgPlayer;
+		if (IsKeyDown(KEY_UP))
+			player->hitbox.y -= playerSpeed;
+		if (IsKeyDown(KEY_DOWN))
+			player->hitbox.y += playerSpeed;
+		if (IsKeyDown(KEY_LEFT))
+			player->hitbox.x -= playerSpeed;
+		if (IsKeyDown(KEY_RIGHT))
+			player->hitbox.x += playerSpeed;
+	}
+}
+
 void rpgDrawLevelWalls(Rectangle **walls, int size) {
 	for (int i = 0; i < size && walls[i] != NULL; i++) {
 		DrawRectangleRec(*walls[i], BLACK);
@@ -64,6 +84,16 @@ void rpgDrawLevelWalls(Rectangle **walls, int size) {
 
 void rpgDrawPlayer(struct playerRPG *player) {
 	DrawRectangleRec(player->hitbox, BLACK);
+}
+
+void drawgameState(gameState *state) {
+	ClearBackground(WHITE);
+	if (state->isInElevator) {
+		DrawTexture(state->elevatorImg, 0, 0, WHITE);
+	} else {
+		rpgDrawLevelWalls(&state->levelWalls[0], LEVELWALLSLIMIT);
+		rpgDrawPlayer(&state->rpgPlayer);
+	}
 }
 
 int main(int argc, char **argv) {
@@ -75,14 +105,9 @@ int main(int argc, char **argv) {
 	SetTargetFPS(60);
 	
 	while (!WindowShouldClose()) {
+		updategameState(&state);
 		BeginDrawing();
-			ClearBackground(WHITE);
-			if (state.isInElevator) {
-				DrawTexture(state.elevatorImg, 0, 0, WHITE);
-			} else {
-				rpgDrawLevelWalls(&state.levelWalls[0], LEVELWALLSLIMIT);
-				rpgDrawPlayer(&state.rpgPlayer);
-			}
+			drawgameState(&state);
 		EndDrawing();
 	}
 	
