@@ -5,6 +5,8 @@
 #include "fifo.h"
 
 const int winWidth = 1024, winHeight = 768;
+#define LEVELWALLSLIMIT 10000 
+#define ENEMIESLIMIT 1024 
 
 /* open for suggestions on other events to add! */
 typedef enum {
@@ -29,8 +31,8 @@ typedef struct {
 	elevatorEvent currentElevatorEvent;
 	
 	/* RPG RELATED BULLSHITTO */
-	Rectangle *levelWalls[10000];
-	struct enemy *enemies[1024];
+	Rectangle *levelWalls[LEVELWALLSLIMIT];
+	struct enemy *enemies[ENEMIESLIMIT];
 	Texture levelImg;
 	struct playerRPG rpgPlayer;
 } gameState;
@@ -53,11 +55,22 @@ void *getLastFreePtrArrayItem(void **array, int arrSize) {
 	return NULL;
 }
 
+void rpgDrawLevelWalls(Rectangle **walls, int size) {
+	for (int i = 0; i < size && walls[i] != NULL; i++) {
+		DrawRectangleRec(*walls[i], BLACK);
+	}
+}
+
+void rpgDrawPlayer(struct playerRPG *player) {
+	DrawRectangleRec(player->hitbox, BLACK);
+}
+
 int main(int argc, char **argv) {
 	puts("UTTG!");
 	InitWindow(winWidth, winHeight, "UTTG");
 	gameState state;
 	initgameState(&state);
+	state.isInElevator = false;
 	SetTargetFPS(60);
 	
 	while (!WindowShouldClose()) {
@@ -66,7 +79,8 @@ int main(int argc, char **argv) {
 			if (state.isInElevator) {
 				DrawTexture(state.elevatorImg, 0, 0, WHITE);
 			} else {
-				// nothing yet
+				rpgDrawLevelWalls(state.levelWalls, LEVELWALLSLIMIT);
+				rpgDrawPlayer(&state.rpgPlayer);
 			}
 		EndDrawing();
 	}
