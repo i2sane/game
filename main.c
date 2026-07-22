@@ -5,24 +5,28 @@
 #include "fifo.h"
 
 #define LEVELWALLSLIMIT 10000 
-#define ENEMIESLIMIT 1024 
+#define NPCLIMIT 1024 
 
 const int winWidth = 1024, winHeight = 768;
 const int playerSpeed = 4;
+bool debug = true;
+char buf[1024] = {0};
+int mouseX, mouseY;
+bool freezeDbgText = false;
 
 /* open for suggestions on other events to add! */
 typedef enum {
 	SPARKINGROOF,
-	ROPEBREAKING,
-	TIMEMODULEFAILURE
+	ROPEBREAKING
 } elevatorEvent;
 
 typedef enum {
 	NOTHING
 } inventoryItem;
 
-struct enemy {
+struct npc {
 	Rectangle hitbox;
+	bool aggressive;
 	FifoQueue *enqueuedEvents;
 };
 
@@ -46,7 +50,7 @@ typedef struct {
 	
 	/* RPG RELATED BULLSHITTO */
 	Rectangle *levelWalls[LEVELWALLSLIMIT];
-	struct enemy *enemies[ENEMIESLIMIT];
+	struct npc *npc[NPCLIMIT];
 	Texture levelImg;
 	struct playerRPG rpgPlayer;
 	rpgCamera camera;
@@ -98,6 +102,8 @@ void updategameState(gameState *state) {
 			player->hitbox.x -= playerSpeed;
 		if (IsKeyDown(KEY_RIGHT))
 			player->hitbox.x += playerSpeed;
+		if (IsKeyDown(KEY_M))
+			freezeDbgText = freezeDbgText ? false : true;
 	}
 }
 
@@ -113,6 +119,15 @@ void rpgDrawPlayer(struct playerRPG *player) {
 
 void drawgameState(gameState *state) {
 		ClearBackground(WHITE);
+		if (debug) {
+			if (!freezeDbgText) {
+				mouseX = GetMouseX();
+				mouseY = GetMouseY();
+				memset(buf, 0, 1024);
+				snprintf(buf, 1023, "%d, %d", mouseX, mouseY);
+			}
+			DrawText(buf, mouseX, mouseY, 14, BLACK);
+		}
 		if (state->isInElevator) {
 			DrawTexture(state->elevatorImg, 0, 0, WHITE);
 		} else {
@@ -125,7 +140,7 @@ void drawgameState(gameState *state) {
 
 int main(int argc, char **argv) {
 	puts("UETG!");
-	InitWindow(winWidth, winHeight, "UTTG");
+	InitWindow(winWidth, winHeight, "UETG");
 	gameState state;
 	initgameState(&state);
 	state.isInElevator = false;
