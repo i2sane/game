@@ -1,4 +1,4 @@
-# UTTG [WORKING TITLE.]
+# UETG [WORKING TITLE.]
 
 A cool game.
 
