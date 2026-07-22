@@ -9,4 +9,8 @@ uttg:
 uttg.exe:
 	echo win
 
+web:
+	# This likely works but I don't have raylib built from source with the right flags so I can't actually test this lol. ymmv
+	emcc $(CFLAGS) $(FILES) -o $(NAME)
+
 all: uttg uttg.exe
