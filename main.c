@@ -36,6 +36,7 @@ typedef struct {
 
 void initgameState(gameState *state) {
 	memset(state, 0, sizeof (gameState));
+	state->isInElevator = true;
 }
 
 int main(int argc, char **argv) {
