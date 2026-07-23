@@ -5,7 +5,7 @@ WEBLDFLAGS=-I/usr/local/include -Lweblib -lraylib
 FILES=main.c fifo.c
 NAME=uetg
 
-all: clean uetg uetg.exe
+all: clean uetg uetg.exe web
 
 uetg:
 	$(CC) $(CFLAGS) $(FILES) -o $(NAME) $(LDFLAGS)
@@ -16,7 +16,8 @@ uetg.exe:
 web:
 	# I love the web. This was definitely not something I struggled terribly with. I :heart: Brandon Eich
 	mkdir webbuild || true
-	emcc --preload-file sounds --preload-file images -s USE_GLFW=3 -s ASYNCIFY $(CFLAGS) $(FILES) -o webbuild/$(NAME).html $(WEBLDFLAGS)  
+	emcc --preload-file assets -s USE_GLFW=3 -s ASYNCIFY $(CFLAGS) $(FILES) -o webbuild/$(NAME).html $(WEBLDFLAGS)  
 
 clean:
-	rm uetg uetg.exe webbuild || true
+	rm -rf webbuild || true
+	rm uetg uetg.exe || true

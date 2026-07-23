@@ -85,13 +85,13 @@ void initgameState(gameState *state) {
 	memset(state, 0, sizeof (gameState));
 	state->isInElevator = true;
 	state->firstCycle = true;
-	state->elevatorImg = LoadTexture("images/elevator1.png");
+	state->elevatorImg = LoadTexture("assets/images/elevator1.png");
 	state->rpgPlayer.hitbox.height = 10;
 	state->rpgPlayer.hitbox.width = 10;
 	state->camera.camera.zoom = 1.0f;
 	state->floor = 5;
-	hum = LoadSound("sounds/hum.wav");
-	ding = LoadSound("sounds/ding.wav");
+	hum = LoadSound("assets/sounds/hum.wav");
+	ding = LoadSound("assets/sounds/ding.wav");
 	Rectangle **levelWalls = &state->levelWalls[0];
 }
 
