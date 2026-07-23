@@ -7,6 +7,10 @@
 #include <unistd.h>
 #include "fifo.h"
 
+#if defined(PLATFORM_WEB)
+#include <emscripten/emscripten.h>
+#endif
+
 #define LEVELWALLSLIMIT 10000 
 #define NPCLIMIT 1024 
 
@@ -52,6 +56,7 @@ typedef struct {
 	/* ELEVATOR SPECIFIC BULLSHITTO */
 	int floor;
 	int cyclesTillNextFloor;
+	bool firstCycle;
 	bool isInElevator;
 	Texture elevatorImg; 
 	FifoQueue enqueuedElevatorEvents;
@@ -79,13 +84,14 @@ void initgameState(gameState *state) {
 	SetRandomSeed(time(NULL));
 	memset(state, 0, sizeof (gameState));
 	state->isInElevator = true;
+	state->firstCycle = true;
 	state->elevatorImg = LoadTexture("images/elevator1.png");
 	state->rpgPlayer.hitbox.height = 10;
 	state->rpgPlayer.hitbox.width = 10;
 	state->camera.camera.zoom = 1.0f;
 	state->floor = 5;
-	hum = LoadSound("sounds/hum.ogg");
-	ding = LoadSound("sounds/ding.ogg");
+	hum = LoadSound("sounds/hum.wav");
+	ding = LoadSound("sounds/ding.wav");
 	Rectangle **levelWalls = &state->levelWalls[0];
 }
 
@@ -105,15 +111,18 @@ void *getLastFreePtrArrayItem(void **array, int arrSize) {
 void updategameState(gameState *state) {
 	if (state->isInElevator) {
 		elevatorEvent *queuedEvent = (elevatorEvent *)popFromQueue(&state->enqueuedElevatorEvents);
+		// hack : )
+		if (state->floor == 0)
+			return;
 		if (queuedEvent != NULL) {
 			switch (*queuedEvent) {
 				case DINGNOISE:
 					PlaySound(ding);
-					usleep(1000 * 700);
+					sleep(2);
 					break;
 				case HUMNOISE:
 					PlaySound(hum);
-					usleep(1000 * 1000);
+					sleep(1);
 					break;
 			}
 			free(queuedEvent);
@@ -121,10 +130,12 @@ void updategameState(gameState *state) {
 		if (state->cyclesTillNextFloor <= 0) {
 			elevatorEvent newEvent = DINGNOISE;
 			state->cyclesTillNextFloor = GetRandomValue(3, 6);
-			if (state->floor != 5)
+			if (!state->firstCycle) {
 				state->floor--;
-			else
 				addToQueue(&state->enqueuedElevatorEvents, &newEvent, sizeof (newEvent));
+			} else {
+				state->firstCycle = false;
+			} 
 		} else {
 			elevatorEvent newEvent = HUMNOISE;
 			addToQueue(&state->enqueuedElevatorEvents, &newEvent, sizeof (newEvent));
@@ -155,13 +166,19 @@ void rpgDrawPlayer(struct playerRPG *player) {
 }
 
 void drawgameState(gameState *state) {
+		char buf[1024] = {0};
 		ClearBackground(WHITE);
 		if (state->isInElevator) {
 			DrawTexture(state->elevatorImg, 0, 0, WHITE);
+			if (state->floor != 0) {
+				snprintf(buf, 1023, "%d", state->floor);
+				DrawText(buf, 299, 291, 12, WHITE);
+			} else {
+				DrawText("you win", 299, 291, 12, WHITE);
+			}
 		} else {
 			BeginMode2D(state->camera.camera);
 				if (debug) {
-					char buf[1024] = {0};
 					struct playerRPG *player = &state->rpgPlayer;
 					snprintf(buf, 1023, "%f, %f", player->hitbox.x, player->hitbox.y);
 					DrawText(buf, player->hitbox.x + 10, player->hitbox.y + 10, 14, BLACK);
@@ -172,21 +189,33 @@ void drawgameState(gameState *state) {
 		}
 }
 
+gameState state;
+
+void drawFrame() {
+	updategameState(&state);
+	BeginDrawing();
+		drawgameState(&state);
+		if (debug) {
+			printf("%d, %d\n", GetMouseX(), GetMouseY());
+		}
+	EndDrawing();
+}
+
 int main(int argc, char **argv) {
 	puts("UETG!");
 	InitWindow(winWidth, winHeight, "UETG");
 	InitAudioDevice();
-	gameState state;
 	initgameState(&state);
 //	state.isInElevator = false;
 	SetTargetFPS(60);
 	
+#if defined(PLATFORM_WEB)
+	emscripten_set_main_loop(drawFrame, 0, 1);
+#else
 	while (!WindowShouldClose()) {
-		updategameState(&state);
-		BeginDrawing();
-			drawgameState(&state);
-		EndDrawing();
+		drawFrame();
 	}
+#endif
 	
 	destroygameState(&state);
 	
