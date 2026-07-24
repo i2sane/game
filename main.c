@@ -17,7 +17,6 @@
 
 const int winWidth = 1024, winHeight = 768;
 const int playerSpeed = 4;
-bool debug = true;
 Sound hum, ding; 
 
 /* open for suggestions on other events to add! */
