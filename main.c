@@ -21,10 +21,7 @@ Sound hum, ding;
 
 /* open for suggestions on other events to add! */
 typedef enum {
-	SPARKINGROOF,
-	ROPEBREAKING,
-	DINGNOISE,
-	HUMNOISE
+	TRANSITIONINGTORPG
 } elevatorEvent;
 
 typedef enum {
@@ -127,7 +124,7 @@ void updategameState(gameState *state) {
 			state->elevatorCycling = false;
 			state->floor--;
 			PlaySound(ding);
-			state->rpgTransitionDue = true;
+			state->rpgTransitionDue = true; // TODO: this should return the appropriate elevatorEvent
 			// TODO: REPLACE THIS SHIT WITH A PROPER TIMER
 			state->delayFrames = FRAMERATE / 2;
 			state->delayFrameCounter = 0;
@@ -165,7 +162,15 @@ void drawgameState(gameState *state) {
 		char buf[1024] = {0};
 		if (!state->gameHasStarted) {
 			ClearBackground(BLACK);
-			DrawText("UETG :D\n\nPress space to start the game.", 0, 0, 24, WHITE);
+			/* this does apparently center the hitbox of the text but the text itself remains uncentered. 
+			 * i'll get around to fixing this eventually. */
+			char *text = "UETG :D\n\nPress space to start the game.";
+			Vector2 textSize = MeasureTextEx(GetFontDefault(), text, 24, 0);
+			DrawText(text, 
+					 winWidth / 2 - (int)(textSize.x / 2), 
+					 winHeight / 2 - (int)(textSize.y / 2), 
+					 24, 
+					 WHITE);
 			return;
 		}
 		ClearBackground(WHITE);
