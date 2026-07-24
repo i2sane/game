@@ -5,6 +5,7 @@
 #include <time.h>
 #include <unistd.h>
 #include "timer.h"
+#include "utility.h"
 
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
@@ -15,6 +16,7 @@
 #define FRAMERATE 60
 #define INVENTORYSIZE 10
 #define FLOORS 6
+#define PANICTEXTLIMIT 10000
 
 const int winWidth = 1024, winHeight = 768;
 const int playerSpeed = 4;
@@ -47,6 +49,10 @@ typedef struct {
 } collidableWall;
 
 typedef struct {
+	collidableWall *walls[LEVELWALLSLIMIT];
+} gameLevel;
+
+typedef struct {
 	Rectangle *attachedHitbox;
 	Camera2D camera;
 } rpgCamera;
@@ -55,7 +61,7 @@ typedef struct {
 	bool gameHasStarted;
 	inventoryItem inventory[INVENTORYSIZE];
 	bool isPanicked;
-	char panicText[10000];
+	char panicText[PANICTEXTLIMIT];
 	int floor;
 	
 	/* ELEVATOR SPECIFIC BULLSHITTO */
@@ -68,13 +74,18 @@ typedef struct {
 	bool rpgTransitionDue;
 	
 	/* RPG RELATED BULLSHITTO */
-	collidableWall *levels[FLOORS][LEVELWALLSLIMIT];
+	gameLevel levels[FLOORS];
 	struct npcRPG *npcs[NPCLIMIT];
 	Texture levelImg;
 	struct playerRPG rpgPlayer;
 	rpgCamera camera;
 	bool rpgLevelTransitionDue;
 } gameState;
+
+void panic(gameState *state, char *panicText) {
+	state->isPanicked = true;
+	snprintf(state->panicText, PANICTEXTLIMIT - 1, "! game panic !\n\n%s", panicText);
+}
 
 void attachCameraToHitbox(rpgCamera *camera, Rectangle *hitbox) {
 	camera->camera.target = (Vector2){
@@ -88,7 +99,8 @@ void attachCameraToHitbox(rpgCamera *camera, Rectangle *hitbox) {
 }
 
 void initgameState(gameState *state) {
-	collidableWall *lvl = state->levels[4][0];
+	collidableWall *lvlWalls = state->levels[4].walls[0];
+	collidableWall **lastFreeWall = (collidableWall **)getLastFreePtrArrayItem((void **)&lvlWalls, LEVELWALLSLIMIT);
 	SetRandomSeed(time(NULL));
 	memset(state, 0, sizeof (gameState));
 	state->isInElevator = true;
@@ -99,7 +111,9 @@ void initgameState(gameState *state) {
 	state->floor = 5;
 	hum = LoadSound("assets/sounds/hum.wav");
 	ding = LoadSound("assets/sounds/ding.wav");
-	lvl[0] = (collidableWall){
+	if (lastFreeWall == NULL)
+		panic(state, "lastFreeWall is NULL");
+	*lastFreeWall = &(collidableWall){
 		{40, 40},
 		10
 	};
@@ -158,7 +172,7 @@ void updateElevatorState(gameState *state) {
 void handleRpgPlayer(gameState *state) {
 	struct playerRPG *player = &state->rpgPlayer;
 	struct npcRPG **npcs = &state->npcs[0];
-	collidableWall **walls = &state->levels[state->floor - 1][0];
+	collidableWall **walls = &state->levels[state->floor - 1].walls[0];
 	Rectangle oldPlrHitbox = state->rpgPlayer.hitbox;
 	attachCameraToHitbox(&state->camera, &player->hitbox);
 	/* THIS INFURATES ME. */
@@ -177,7 +191,7 @@ void handleRpgPlayer(gameState *state) {
 }
 
 void updategameState(gameState *state) {
-	if (isTitleScreenStillShowing(state))
+	if (isTitleScreenStillShowing(state) || state->isPanicked)
 		return;
 	if (state->isInElevator) {
 		updateElevatorState(state);
@@ -199,6 +213,11 @@ void rpgDrawPlayer(struct playerRPG *player) {
 
 void drawgameState(gameState *state) {
 		char buf[1024] = {0};
+		if (state->isPanicked) {
+			ClearBackground(BLUE);
+			DrawText(state->panicText, 10, 10, 24, WHITE);
+			return;
+		}
 		if (!state->gameHasStarted) {
 			ClearBackground(BLACK);
 			/* this does apparently center the hitbox of the text but the text itself remains uncentered. 
@@ -228,7 +247,7 @@ void drawgameState(gameState *state) {
 				snprintf(buf, 1023, "%f, %f", player->hitbox.x, player->hitbox.y);
 				DrawText(buf, player->hitbox.x + 10, player->hitbox.y + 10, 14, BLACK);
 #endif
-				rpgDrawLevelWalls(&state->levels[state->floor - 1][0], LEVELWALLSLIMIT);
+				rpgDrawLevelWalls(&state->levels[state->floor - 1].walls[0], LEVELWALLSLIMIT);
 				rpgDrawPlayer(&state->rpgPlayer);
 			EndMode2D();
 		}
