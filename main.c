@@ -59,10 +59,12 @@ typedef struct {
 	/* ELEVATOR SPECIFIC BULLSHITTO */
 	int floor;
 	bool elevatorCycling;
-	int firstCycleFrameCounter;
+	int delayFrames;
+	int delayFrameCounter;
 	bool isInElevator;
 	Texture elevatorImg; 
 	FifoQueue enqueuedElevatorEvents;
+	bool rpgTransitionDue;
 	
 	/* RPG RELATED BULLSHITTO */
 	Rectangle *levelWalls[LEVELWALLSLIMIT];
@@ -92,6 +94,7 @@ void initgameState(gameState *state) {
 	state->rpgPlayer.hitbox.width = 10;
 	state->camera.camera.zoom = 1.0f;
 	state->floor = 5;
+	state->delayFrames = FRAMERATE;
 	hum = LoadSound("assets/sounds/hum.wav");
 	ding = LoadSound("assets/sounds/ding.wav");
 	Rectangle **levelWalls = &state->levelWalls[0];
@@ -100,6 +103,7 @@ void initgameState(gameState *state) {
 void destroygameState(gameState *state) {
 	UnloadTexture(state->elevatorImg);
 	UnloadSound(hum);
+	UnloadSound(ding);
 }
 
 // hacky beginning but works
@@ -109,20 +113,27 @@ void updategameState(gameState *state) {
 			state->gameHasStarted = true;
 		return;
 	}
+	if (IsSoundPlaying(hum) || IsSoundPlaying(ding))
+		return;
 	if (state->isInElevator) {
-		if (state->firstCycleFrameCounter < FRAMERATE) {
-			state->firstCycleFrameCounter++;
+		if (state->delayFrameCounter != state->delayFrames) {
+			state->delayFrameCounter++;
+			return;
+		}
+		if (state->rpgTransitionDue) {
+			state->isInElevator = false;
 			return;
 		}
 		if (state->elevatorCycling) {
-			if (IsSoundPlaying(hum))
-				return;
 			state->elevatorCycling = false;
 			state->floor--;
 			PlaySound(ding);
+			state->rpgTransitionDue = true;
+			// TODO: REPLACE THIS SHIT WITH A PROPER TIMER
+			state->delayFrames = FRAMERATE / 2;
+			state->delayFrameCounter = 0;
 			return;
-		} else if (IsSoundPlaying(ding))
-			return;
+		}
 		if (state->floor > 0) {
 			state->elevatorCycling = true;
 			PlaySound(hum);
