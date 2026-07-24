@@ -12,7 +12,6 @@
 
 #define LEVELWALLSLIMIT 10000 
 #define NPCLIMIT 1024 
-#define SOUNDREGISTRYSIZE 1024
 #define FRAMERATE 60
 #define INVENTORYSIZE 10
 
@@ -31,7 +30,7 @@ typedef enum {
 
 typedef enum {
 	NOTHING,
-	ADVERTISER_FRIENDLY_WEAPON,
+	LETHAL_WEAPON,
 	GUM /* you swallow this to regain 10 health. lololo */
 } inventoryItem;
 
@@ -54,7 +53,6 @@ typedef struct {
 typedef struct {
 	bool gameHasStarted;
 	inventoryItem inventory[INVENTORYSIZE];
-	struct soundRegistryMember *soundRegistry[SOUNDREGISTRYSIZE];
 	bool isPanicked;
 	char panicText[10000];
 	
