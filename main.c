@@ -13,6 +13,9 @@
 
 #define LEVELWALLSLIMIT 10000 
 #define NPCLIMIT 1024 
+#define SOUNDREGISTRYSIZE 1024
+#define FRAMERATE 60
+#define INVENTORYSIZE 10
 
 const int winWidth = 1024, winHeight = 768;
 const int playerSpeed = 4;
@@ -51,12 +54,15 @@ typedef struct {
 
 typedef struct {
 	bool gameHasStarted;
-	inventoryItem inventory[10];
+	inventoryItem inventory[INVENTORYSIZE];
+	struct soundRegistryMember *soundRegistry[SOUNDREGISTRYSIZE];
+	bool isPanicked;
+	char panicText[10000];
 	
 	/* ELEVATOR SPECIFIC BULLSHITTO */
 	int floor;
-	int cyclesTillNextFloor;
-	bool firstCycle;
+	bool elevatorCycling;
+	int firstCycleFrameCounter;
 	bool isInElevator;
 	Texture elevatorImg; 
 	FifoQueue enqueuedElevatorEvents;
@@ -84,7 +90,6 @@ void initgameState(gameState *state) {
 	SetRandomSeed(time(NULL));
 	memset(state, 0, sizeof (gameState));
 	state->isInElevator = true;
-	state->firstCycle = true;
 	state->elevatorImg = LoadTexture("assets/images/elevator1.png");
 	state->rpgPlayer.hitbox.height = 10;
 	state->rpgPlayer.hitbox.width = 10;
@@ -100,46 +105,25 @@ void destroygameState(gameState *state) {
 	UnloadSound(hum);
 }
 
-void *getLastFreePtrArrayItem(void **array, int arrSize) {
-	for (int i = 0; i < arrSize; i++) {
-		if (array[i] == NULL)
-			return array[i];
-	}
-	return NULL;
-}
-
+// hacky beginning but works
 void updategameState(gameState *state) {
 	if (state->isInElevator) {
-		elevatorEvent *queuedEvent = (elevatorEvent *)popFromQueue(&state->enqueuedElevatorEvents);
-		// hack : )
-		if (state->floor == 0)
+		if (state->firstCycleFrameCounter < (FRAMERATE / 2)) {
+			state->firstCycleFrameCounter++;
 			return;
-		if (queuedEvent != NULL) {
-			switch (*queuedEvent) {
-				case DINGNOISE:
-					PlaySound(ding);
-					sleep(2);
-					break;
-				case HUMNOISE:
-					PlaySound(hum);
-					sleep(1);
-					break;
-			}
-			free(queuedEvent);
 		}
-		if (state->cyclesTillNextFloor <= 0) {
-			elevatorEvent newEvent = DINGNOISE;
-			state->cyclesTillNextFloor = GetRandomValue(3, 6);
-			if (!state->firstCycle) {
-				state->floor--;
-				addToQueue(&state->enqueuedElevatorEvents, &newEvent, sizeof (newEvent));
-			} else {
-				state->firstCycle = false;
-			} 
-		} else {
-			elevatorEvent newEvent = HUMNOISE;
-			addToQueue(&state->enqueuedElevatorEvents, &newEvent, sizeof (newEvent));
-			state->cyclesTillNextFloor--;
+		if (state->elevatorCycling) {
+			if (IsSoundPlaying(hum))
+				return;
+			state->elevatorCycling = false;
+			state->floor--;
+			PlaySound(ding);
+			return;
+		} else if (IsSoundPlaying(ding))
+			return;
+		if (state->floor > 0) {
+			state->elevatorCycling = true;
+			PlaySound(hum);
 		}
 	} else {
 		struct playerRPG *player = &state->rpgPlayer;
@@ -207,7 +191,7 @@ int main(int argc, char **argv) {
 	InitAudioDevice();
 	initgameState(&state);
 //	state.isInElevator = false;
-	SetTargetFPS(60);
+	SetTargetFPS(FRAMERATE);
 	
 #if defined(PLATFORM_WEB)
 	emscripten_set_main_loop(drawFrame, 0, 1);
