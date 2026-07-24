@@ -107,8 +107,13 @@ void destroygameState(gameState *state) {
 
 // hacky beginning but works
 void updategameState(gameState *state) {
+	if (!state->gameHasStarted) {
+		if (IsKeyDown(KEY_SPACE))
+			state->gameHasStarted = true;
+		return;
+	}
 	if (state->isInElevator) {
-		if (state->firstCycleFrameCounter < (FRAMERATE / 2)) {
+		if (state->firstCycleFrameCounter < FRAMERATE) {
 			state->firstCycleFrameCounter++;
 			return;
 		}
@@ -151,6 +156,11 @@ void rpgDrawPlayer(struct playerRPG *player) {
 
 void drawgameState(gameState *state) {
 		char buf[1024] = {0};
+		if (!state->gameHasStarted) {
+			ClearBackground(BLACK);
+			DrawText("UETG :D\n\nPress space to start the game.", 0, 0, 24, WHITE);
+			return;
+		}
 		ClearBackground(WHITE);
 		if (state->isInElevator) {
 			DrawTexture(state->elevatorImg, 0, 0, WHITE);
@@ -162,11 +172,11 @@ void drawgameState(gameState *state) {
 			}
 		} else {
 			BeginMode2D(state->camera.camera);
-				if (debug) {
-					struct playerRPG *player = &state->rpgPlayer;
-					snprintf(buf, 1023, "%f, %f", player->hitbox.x, player->hitbox.y);
-					DrawText(buf, player->hitbox.x + 10, player->hitbox.y + 10, 14, BLACK);
-				}
+#if UETG_DEBUG
+				struct playerRPG *player = &state->rpgPlayer;
+				snprintf(buf, 1023, "%f, %f", player->hitbox.x, player->hitbox.y);
+				DrawText(buf, player->hitbox.x + 10, player->hitbox.y + 10, 14, BLACK);
+#endif
 				rpgDrawLevelWalls(&state->levelWalls[0], LEVELWALLSLIMIT);
 				rpgDrawPlayer(&state->rpgPlayer);
 			EndMode2D();
@@ -179,9 +189,9 @@ void drawFrame() {
 	updategameState(&state);
 	BeginDrawing();
 		drawgameState(&state);
-		if (debug) {
-			printf("%d, %d\n", GetMouseX(), GetMouseY());
-		}
+#if UETG_DEBUG
+		printf("%d, %d\n", GetMouseX(), GetMouseY());
+#endif
 	EndDrawing();
 }
 

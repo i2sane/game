@@ -9,6 +9,9 @@ all: clean uetg uetg.exe web
 
 uetg:
 	$(CC) $(CFLAGS) $(FILES) -o $(NAME) $(LDFLAGS)
+	
+debug:
+	$(CC) $(CFLAGS) -g -DUETG_DEBUG $(FILES) -o $(NAME) $(LDFLAGS)
 
 uetg.exe:
 	echo win
