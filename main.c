@@ -34,12 +34,10 @@ typedef enum {
 struct npcRPG {
 	Rectangle hitbox;
 	bool aggressive;
-	FifoQueue *enqueuedEvents;
 };
 
 struct playerRPG {
 	Rectangle hitbox;
-	FifoQueue *enqueuedEvents;
 };
 
 typedef struct {

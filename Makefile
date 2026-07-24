@@ -2,7 +2,7 @@ CC=cc
 CFLAGS=-Wall
 LDFLAGS=-L/usr/local/lib -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 WEBLDFLAGS=-I/usr/local/include -Lweblib -lraylib 
-FILES=main.c fifo.c timer.c utility.c
+FILES=main.c timer.c utility.c
 NAME=uetg
 
 all: clean uetg uetg.exe web
