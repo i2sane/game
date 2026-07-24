@@ -4,7 +4,6 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include "fifo.h"
 #include "timer.h"
 
 #if defined(PLATFORM_WEB)
